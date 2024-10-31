@@ -1,0 +1,10 @@
+services:
+  app:
+    build:
+      context: .
+    volumes:
+      - .:/app
+    ports:
+      - "50051:50051"
+    environment:
+      - GO111MODULE=on

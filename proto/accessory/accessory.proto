@@ -1,0 +1,34 @@
+syntax = "proto3";
+package accessory;
+option go_package = "lostark/proto/accessory";
+
+
+
+service AccessoryService {
+    rpc GetAverageTradePrice(GetAverageTradePriceRequest) returns (stream GetAverageTradePriceResponseList) {};
+}
+
+
+message GetAverageTradePriceRequest {
+    string token = 1;
+    int32 tier = 2;
+    int32 polishing_effect = 3;
+    int32 category_code = 4;
+    string item_grade = 5;
+}
+
+message GetAverageTradePriceResponse {
+    string id = 1;
+    string name = 2;
+    string grade = 3;
+    int32 auction_price = 4;
+    int32 buy_price = 5;
+    int32 trade_left = 6;
+    float quality = 7;
+    
+}
+
+message GetAverageTradePriceResponseList {
+    repeated GetAverageTradePriceResponse items = 1;
+    float progress = 2;
+}
