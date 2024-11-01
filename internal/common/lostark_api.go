@@ -2,6 +2,7 @@ package common
 
 import (
 	"log"
+	"lostark/config"
 	accessoryPkg "lostark/pkg/accessory"
 	commonPkg "lostark/pkg/common"
 	"sync"
@@ -9,13 +10,9 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-func GetAllAuctionsByLostarkAPI(token string, itemsChan chan<- []commonPkg.CustomAuctionItem) {
-	defer close(itemsChan)
-
+func GetAllAuctionsByLostarkAPI(itemsChan chan<- []commonPkg.CustomAuctionItem) {
 	client := resty.New()
 	config := accessoryPkg.NewConfig()
-
-	maxValue := config.GetMaxValue(config.PolishingEffect["공격력 %"])
 
 	params := commonPkg.AuctionRequest{}
 	params.ItemTier = 4
@@ -23,30 +20,30 @@ func GetAllAuctionsByLostarkAPI(token string, itemsChan chan<- []commonPkg.Custo
 	params.ItemGrade = "고대"
 	params.ItemGradeQuality = 67
 	params.EtcOptions = []commonPkg.EtcOption{
-		{FirstOption: 8, SecondOption: 1, MinValue: 13, MaxValue: 13},
-		{FirstOption: 7, SecondOption: config.PolishingEffect["공격력 %"], MinValue: maxValue, MaxValue: maxValue},
+		{FirstOption: 7, SecondOption: config.PolishingEffect["추가 피해"], MinValue: 3, MaxValue: 3},
 	}
 
 	var wg sync.WaitGroup
 
-	for page := 1; page <= 10; page++ {
+	for page := 1; page <= 3; page++ {
 		wg.Add(1)
 		go func(pageNum int) {
 			defer wg.Done()
-			resp := fetchAuctionPage(client, token, params)
+			params.PageNo = pageNum
+			resp := fetchAuctionPage(client, params)
 
-			log.Println(resp.Items)
+			if len(resp.Items) == 0 {
+				return
+			}
 			itemsChan <- convertToCustomItems(resp.Items)
 		}(page)
 	}
 
-	go func() {
-		wg.Wait()
-		close(itemsChan)
-	}()
+	wg.Wait()
+	close(itemsChan)
 }
 
-func fetchAuctionPage(client *resty.Client, token string, params commonPkg.AuctionRequest) commonPkg.AuctionResponse {
+func fetchAuctionPage(client *resty.Client, params commonPkg.AuctionRequest) commonPkg.AuctionResponse {
 	etcOptionsMap := make([]map[string]interface{}, len(params.EtcOptions))
 	for i, opt := range params.EtcOptions {
 		etcOptionsMap[i] = map[string]interface{}{
@@ -68,10 +65,12 @@ func fetchAuctionPage(client *resty.Client, token string, params commonPkg.Aucti
 		"SortCondition":    "ASC",
 	}
 
+	cfg := config.GetConfig()
+
 	resp, err := client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(requestBody).
-		SetAuthToken(token).
+		SetAuthToken(cfg.LostarkAPIKey).
 		SetResult(&commonPkg.AuctionResponse{}).
 		Post(commonPkg.BASE_URL + "/auctions/items")
 

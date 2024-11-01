@@ -4,16 +4,12 @@ import (
 	"context"
 	"log"
 	"net"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	accessorySvc "lostark/internal/accessory"
-	"lostark/internal/accessory/task"
+	tasks "lostark/internal/accessory/task"
 	accessoryPb "lostark/proto/accessory"
 
-	"github.com/hibiken/asynq"
 	"google.golang.org/grpc"
 )
 
@@ -33,54 +29,16 @@ func main() {
 	// }
 	// defer mysql.Close()
 
-	// accessoryRepo := models.NewAccessoryRepository(mysql.DB())
-
-	redisAddr := "localhost:6379"
-
-	scheduler, err := task.NewScheduler(redisAddr)
-	if err != nil {
-		log.Fatalf("Failed to create scheduler: %v", err)
+	//scheduler
+	taskManager := tasks.NewTaskManager()
+	accessoryTask := tasks.NewAccessoryPriceTask(taskManager)
+	go accessoryTask.RunImmediately()
+	if err := accessoryTask.Schedule(); err != nil {
+		log.Fatalf("Failed to schedule accessory price task: %v", err)
 	}
+	taskManager.Start()
 
-	if err := scheduler.RegisterPriceUpdateTask(); err != nil {
-		log.Fatalf("Failed to register price update task: %v", err)
-	}
-
-	srv := asynq.NewServer(
-		asynq.RedisClientOpt{Addr: redisAddr},
-		asynq.Config{
-			Concurrency: 1,
-			Queues: map[string]int{
-				"default": 1,
-			},
-		},
-	)
-
-	// handler := task.NewTaskHandler(accessoryRepo)
-	mux := asynq.NewServeMux()
-	// handler.RegisterHandlers(mux)
-
-	go func() {
-		if err := scheduler.Start(); err != nil {
-			log.Fatalf("Failed to start scheduler: %v", err)
-		}
-	}()
-
-	go func() {
-		if err := srv.Run(mux); err != nil {
-			log.Fatalf("Failed to run server: %v", err)
-		}
-	}()
-
-	// 종료 시그널 처리
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan
-
-	// 정상 종료
-	scheduler.Shutdown()
-	srv.Shutdown()
-
+	//grpc
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

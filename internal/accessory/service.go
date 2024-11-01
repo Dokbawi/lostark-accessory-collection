@@ -22,7 +22,7 @@ func (s *AccessoryService) GetAverageTradePrice(req *pb.GetAverageTradePriceRequ
 	itemsChan := make(chan []commonPkg.CustomAuctionItem, 10)
 
 	go func() {
-		common.GetAllAuctionsByLostarkAPI(req.Token, itemsChan)
+		common.GetAllAuctionsByLostarkAPI(itemsChan)
 	}()
 
 	var allItems []commonPkg.CustomAuctionItem

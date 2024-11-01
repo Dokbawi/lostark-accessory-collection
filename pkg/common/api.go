@@ -17,14 +17,14 @@ type CustomAuctionItem struct {
 }
 
 type AuctionRequest struct {
-	ItemGradeQuality int         `json:"item_grade_quality"`
-	ItemTier         int         `json:"item_tier"`
-	ItemGrade        string      `json:"item_grade"`
-	CategoryCode     int         `json:"category_code"`
-	EtcOptions       []EtcOption `json:"etc_options"`
-	PageNo           int         `json:"page_no"`
-	Sort             string      `json:"sort"`
-	SortCondition    string      `json:"sort_condition"`
+	ItemGradeQuality int         `json:"ItemGradeQuality"`
+	ItemTier         int         `json:"ItemTier"`
+	ItemGrade        string      `json:"ItemGrade"`
+	CategoryCode     int         `json:"CategoryCode"`
+	EtcOptions       []EtcOption `json:"EtcOptions"`
+	PageNo           int         `json:"PageNo"`
+	Sort             string      `json:"Sort"`
+	SortCondition    string      `json:"SortCondition"`
 }
 
 type EtcOption struct {
